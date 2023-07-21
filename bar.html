@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>D3.js Bar Chart</title>
+    <script src="https://d3js.org/d3.v4.min.js"></script>
+</head>
+<body>
+ 
+<script>
+d3.csv("ICE6.csv", function(data) {
+
+// Filter the data to include only the 15 most expensive cities
+var filtered_data = data.filter(function(d) {
+  return d.Rank <= 15;
+});
+
+// Group the data by city and calculate the mean cost of living index for each city
+var nested_data = d3.nest()
+  .key(function(d) { return d.City; })
+  .rollup(function(v) { return d3.mean(v, function(d) { return d["Cost of Living Index"]; }); })
+  .entries(filtered_data);
+
+// Define the dimensions of the SVG element
+var svg_width = 800;
+var svg_height = 500;
+
+// Create the SVG element
+var svg = d3.select("body")
+  .append("svg")
+  .attr("width", svg_width)
+  .attr("height", svg_height);
+
+// Define the margins and dimensions of the chart area
+var margin = {top: 50, right: 50, bottom: 100, left: 100};
+var chart_width = svg_width - margin.left - margin.right;
+var chart_height = svg_height - margin.top - margin.bottom;
+
+// Create the chart area
+var chart = svg.append("g")
+  .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+// Define the scales for the x and y axes
+var x_scale = d3.scaleBand()
+  .range([0, chart_width])
+  .padding(0.1);
+var y_scale = d3.scaleLinear()
+  .range([chart_height, 0]);
+
+// Set the domains for the x and y scales
+x_scale.domain(nested_data.map(function(d) { return d.key; }));
+y_scale.domain([0, d3.max(nested_data, function(d) { return d.value; })]);
+
+// Add the x-axis to the chart
+chart.append("g")
+  .attr("transform", "translate(0," + chart_height + ")")
+  .call(d3.axisBottom(x_scale))
+  .selectAll("text")
+  .attr("transform", "rotate(-90)")
+  .attr("x", -10)
+  .attr("y", 0)
+  .style("text-anchor", "end");
+
+// Add the y-axis to the chart
+chart.append("g")
+  .call(d3.axisLeft(y_scale));
+
+// Add the bars to the chart
+chart.selectAll(".bar")
+  .data(nested_data)
+  .enter()
+  .append("rect")
+  .attr("class", "bar")
+  .attr("x", function(d) { return x_scale(d.key); })
+  .attr("y", function(d) { return y_scale(d.value); })
+  .attr("width", x_scale.bandwidth())
+  .attr("height", function(d) { return chart_height - y_scale(d.value); })
+  .on("mouseover", function(d) {
+    d3.select(this).style("fill", "orange");
+    var tooltip_text = "City: " + d.key + "<br>" + "Cost of Living Index: " + d.value;
+    tooltip.html(tooltip_text)
+      .style("opacity", 1)
+      .style("left", (d3.event.pageX + 10) + "px")
+      .style("top", (d3.event.pageY + 10) + "px");
+    })
+  .on("mouseout", function() {
+    d3.select(this).style("fill", "steelblue");
+    tooltip.style("opacity", 0);
+    });
+    svg.append("text")
+  .attr("x", (svg_width / 2))
+  .attr("y", margin.top)
+  .attr("text-anchor", "middle")
+  .style("font-size", "20px")
+  .style("font-weight", "bold")
+  .text("Top 15 most expensive cities");
+   
+
+});
+
+</script>
+</body>
+</html>
